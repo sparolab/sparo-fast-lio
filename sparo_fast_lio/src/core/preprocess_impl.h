@@ -1,17 +1,14 @@
 #pragma once
+// Internal FAST-LIO front-end (ROS-free port of SPARK-FAST-LIO's preprocess.h).
 #include <string>
 #include <vector>
 
-#include <pcl_conversions/pcl_conversions.h>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <Eigen/Core>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp/time.hpp"
-
-#if defined(LIVOX_ROS_DRIVER_FOUND) && LIVOX_ROS_DRIVER_FOUND
-#include <livox_ros_driver/CustomMsg.h>
-#endif
+#include "sparo_fast_lio/preprocessor.h"
+#include "sparo_fast_lio/types.h"
 
 #define IS_VALID(a) ((abs(a) > 1e8) ? true : false)
 
@@ -41,56 +38,20 @@ struct orgtype {
 };
 
 namespace velodyne_ros {
-struct EIGEN_ALIGN16 Point {
-  PCL_ADD_POINT4D;
-  float intensity;
-  float time;
-  uint16_t ring;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+using Point = sparo_fast_lio::VelodynePoint;
 }  // namespace velodyne_ros
-POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(
-                                      float,
-                                      intensity,
-                                      intensity)(float, time, time)(std::uint16_t, ring, ring))
 
 namespace ouster_ros {
-struct EIGEN_ALIGN16 Point {
-  PCL_ADD_POINT4D;
-  float intensity;
-  uint32_t t;
-  uint16_t reflectivity;
-  uint8_t ring;
-  uint16_t ambient;
-  uint32_t range;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+using Point = sparo_fast_lio::OusterPoint;
 }  // namespace ouster_ros
-
-// clang-format off
-POINT_CLOUD_REGISTER_POINT_STRUCT(ouster_ros::Point,
-                                  (float, x, x)
-                                    (float, y, y)
-                                    (float, z, z)
-                                    (float, intensity, intensity)
-                                    // use std::uint32_t to avoid conflicting with pcl::uint32_t
-                                    (std::uint32_t, t, t)
-                                    (std::uint16_t, reflectivity, reflectivity)
-                                    (std::uint8_t, ring, ring)
-                                    (std::uint16_t, ambient, ambient)
-                                    (std::uint32_t, range, range)
-)
 
 class Preprocess {
  public:
   Preprocess();
   ~Preprocess();
 
-#if defined(LIVOX_ROS_DRIVER_FOUND) && LIVOX_ROS_DRIVER_FOUND
-  void process(const livox_ros_driver::CustomMsg &msg, PointCloudXYZI::Ptr &pcl_out);
-#endif
-  void process(const sensor_msgs::msg::PointCloud2 &msg, PointCloudXYZI::Ptr &pcl_out);
+  void process(const pcl::PointCloud<velodyne_ros::Point> &msg, PointCloudXYZI::Ptr &pcl_out);
+  void process(const pcl::PointCloud<ouster_ros::Point> &msg, PointCloudXYZI::Ptr &pcl_out);
   void set(bool feat_en, int lid_type, double bld, int pfilt_num);
 
   // sensor_msgs::PointCloud2::ConstPtr pointcloud;
@@ -101,17 +62,15 @@ class Preprocess {
   int             lidar_type, point_filter_num, N_SCANS, SCAN_RATE, time_unit;
   double          blind, blind_for_human_pilots;
   bool            feature_enabled, given_offset_time;
+  sparo_fast_lio::LogFunction log;
 
  private:
   bool is_from_pilot_zone(const float &pt_x, const float &pt_y, const float &pt_z, const std::string mode = "velodyne");
-#if defined(LIVOX_ROS_DRIVER_FOUND) && LIVOX_ROS_DRIVER_FOUND
-  void avia_handler(const livox_ros_driver::CustomMsg::ConstPtr &msg);
-#endif
-  void oust64_handler(const sensor_msgs::msg::PointCloud2 &msg);
-  void kmoust64_handler(const sensor_msgs::msg::PointCloud2 &msg);
-  void velodyne_handler(const sensor_msgs::msg::PointCloud2 &msg);
+  void set_time_unit_scale();
+  void oust64_handler(const pcl::PointCloud<ouster_ros::Point> &pl_orig);
+  void kmoust64_handler(pcl::PointCloud<ouster_ros::Point> pl_orig);
+  void velodyne_handler(const pcl::PointCloud<velodyne_ros::Point> &pl_orig);
   void give_feature(PointCloudXYZI &pl, std::vector<orgtype> &types);
-  void pub_func(PointCloudXYZI &pl, const rclcpp::Time &ct);
   int plane_judge(const PointCloudXYZI &pl, std::vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);
   bool small_plane(const PointCloudXYZI &pl,
                    std::vector<orgtype> &types,

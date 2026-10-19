@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>sparo_fast_lio</name>
+  <version>0.1.0</version>
+
+  <description>
+    SPARO-FAST-LIO: FAST-LIO2 (IESKF + ikd-Tree) LiDAR-inertial odometry as a ROS-independent
+    C++ library (sparo_fast_lio_core) plus a thin ROS 2 node. Based on SPARK-FAST-LIO (MIT-SPARK)
+    and FAST-LIO2 (HKU MaRS Lab).
+  </description>
+
+  <maintainer email="miraiclaude0509@gmail.com">Hogyun2</maintainer>
+  <author email="shapelim@mit.edu">Hyungtae Lim (SPARK-FAST-LIO)</author>
+  <author>Wei Xu, Fu Zhang et al. (FAST-LIO2)</author>
+
+  <license>GPL-2.0-only</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>eigen</depend>
+  <depend>libpcl-all-dev</depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>pcl_conversions</depend>
+
+  <exec_depend>ros2launch</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -8,11 +8,10 @@
 #include <Eigen/Eigen>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <nav_msgs/msg/odometry.hpp>
-#include <sensor_msgs/msg/imu.hpp>
+#include <memory>
+
 #include "common/so3_math.h"
-#include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/msg/transform_stamped.hpp>
+#include "sparo_fast_lio/types.h"
 
 #define USE_IKFOM
 
@@ -32,7 +31,6 @@
 #define ARRAY_FROM_EIGEN(mat) mat.data(), mat.data() + mat.rows() * mat.cols()
 #define STD_VEC_FROM_EIGEN(mat) \
   std::vector<decltype(mat)::Scalar>(mat.data(), mat.data() + mat.rows() * mat.cols())
-#define DEBUG_FILE_DIR(name) (std::string(std::string(ROOT_DIR) + "Log/" + name))
 
 typedef pcl::PointXYZINormal PointType;
 typedef pcl::PointCloud<PointType> PointCloudXYZI;
@@ -47,10 +45,12 @@ typedef Eigen::Matrix3f M3F;
 #define MF(a, b) Eigen::Matrix<float, (a), (b)>
 #define VF(a) Eigen::Matrix<float, (a), 1>
 
-M3D Eye3d(M3D::Identity());
-M3F Eye3f(M3F::Identity());
-V3D Zero3d(0, 0, 0);
-V3F Zero3f(0, 0, 0);
+inline M3D Eye3d(M3D::Identity());
+inline M3F Eye3f(M3F::Identity());
+inline V3D Zero3d(0, 0, 0);
+inline V3F Zero3f(0, 0, 0);
+
+using ImuSample = sparo_fast_lio::ImuSample;
 
 // Lidar data and imu dates for the curent process
 struct MeasureGroup {
@@ -61,14 +61,14 @@ struct MeasureGroup {
   double lidar_beg_time;
   double lidar_end_time;
   PointCloudXYZI::Ptr lidar;
-  std::deque<std::shared_ptr<const sensor_msgs::msg::Imu>> imu;
+  std::deque<std::shared_ptr<const ImuSample>> imu;
 
   inline V3D getMeanAcc() {
     V3D mean_acc(Zero3d);
     for (const auto &meas : imu) {
-      const auto &imu_acc = meas->linear_acceleration;
+      const auto &imu_acc = meas->acc;
       V3D cur_acc;
-      cur_acc << imu_acc.x, imu_acc.y, imu_acc.z;
+      cur_acc << imu_acc(0), imu_acc(1), imu_acc(2);
       mean_acc += cur_acc;
     }
     return mean_acc /= static_cast<double>(imu.size());
@@ -226,7 +226,7 @@ bool esti_normvector(Eigen::Matrix<T, 3, 1> &normvec,
   return true;
 }
 
-float calc_dist(PointType p1, PointType p2) {
+inline float calc_dist(PointType p1, PointType p2) {
   float d =
       (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
   return d;
