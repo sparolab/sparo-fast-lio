@@ -93,7 +93,10 @@ SparoFastLioNode::SparoFastLioNode(const rclcpp::NodeOptions &options)
       lidar_qos,
       std::bind(&SparoFastLioNode::standardLiDARCallback, this, std::placeholders::_1));
 
-  auto imu_qos = rclcpp::SensorDataQoS();
+  // best effort like a sensor driver, but a deep queue: with the default depth (5 = 50 ms at
+  // 100 Hz) IMU messages are dropped while a dense scan is processed, the next scan then has no
+  // IMU data ("No point, skip this scan!") and repeated gaps make the filter diverge
+  auto imu_qos = rclcpp::SensorDataQoS().keep_last(2000);
   sub_imu_     = create_subscription<sensor_msgs::msg::Imu>(
       "imu", imu_qos, std::bind(&SparoFastLioNode::imuCallback, this, std::placeholders::_1));
 
