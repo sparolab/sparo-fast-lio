@@ -105,10 +105,15 @@ SparoFastLioNode::SparoFastLioNode(const rclcpp::NodeOptions &options)
   rclcpp::QoS qos((rclcpp::SystemDefaultsQoS().keep_last(1).durability_volatile()));
   pub_cloud_full_  = create_publisher<sensor_msgs::msg::PointCloud2>("cloud_registered", qos);
   pub_cloud_lidar_ = create_publisher<sensor_msgs::msg::PointCloud2>("cloud_registered_lidar", qos);
-  pub_cloud_body_  = create_publisher<sensor_msgs::msg::PointCloud2>("cloud_registered_body", qos);
+  // the scan-rate outputs a consumer pairs by stamp (deskewed scan + odometry) keep some history:
+  // with depth 1 the scan's odometry is overwritten by the IMU-rate one 10 ms later whenever the
+  // consumer is briefly busy
+  rclcpp::QoS paired_qos((rclcpp::SystemDefaultsQoS().keep_last(20).durability_volatile()));
+  pub_cloud_body_  = create_publisher<sensor_msgs::msg::PointCloud2>("cloud_registered_body", paired_qos);
   pub_cloud_base_  = create_publisher<sensor_msgs::msg::PointCloud2>("cloud_registered_base", qos);
 
-  pub_odom_                 = create_publisher<nav_msgs::msg::Odometry>("odometry", qos);
+  pub_odom_ = create_publisher<nav_msgs::msg::Odometry>(
+      "odometry", rclcpp::QoS(rclcpp::SystemDefaultsQoS().keep_last(1000).durability_volatile()));
   pub_path_                 = create_publisher<nav_msgs::msg::Path>("path", qos);
   path_msg_.header.frame_id = map_frame_;
 
