@@ -2,7 +2,9 @@
 // `sparo_fast_lio::FastLio` core and publishes the same topics / TF as SPARK-FAST-LIO.
 #pragma once
 
+#include <atomic>
 #include <memory>
+#include <thread>
 #include <optional>
 #include <string>
 
@@ -31,6 +33,7 @@ struct PoseStruct {
 class SparoFastLioNode : public rclcpp::Node {
  public:
   explicit SparoFastLioNode(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  ~SparoFastLioNode() override;
 
  private:
   bool lookupBaseExtrinsics(Eigen::Vector3d &lidar_T_wrt_base, Eigen::Matrix3d &lidar_R_wrt_base);
@@ -108,7 +111,9 @@ class SparoFastLioNode : public rclcpp::Node {
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   rclcpp::Clock::SharedPtr clock_;
-  rclcpp::TimerBase::SharedPtr main_loop_timer_;
+  // scans are processed on their own thread, so a slow scan never holds up the LiDAR and IMU callbacks
+  std::thread worker_;
+  std::atomic<bool> stop_{false};
 
   bool pcd_save_en_       = false;
   bool path_en_           = true;

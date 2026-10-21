@@ -843,7 +843,11 @@ std::optional<Result> FastLio::Impl::processLidarAndImu(MeasureGroup &Measures) 
   }
 
   latest_state_          = kf_.get_x();
-  kf_for_preintegration_ = kf_;
+  {
+    // the IMU callback propagates this copy on another thread (ROS node: scans are processed off the executor)
+    std::lock_guard<std::mutex> lk(buffer_mutex_);
+    kf_for_preintegration_ = kf_;
+  }
   // Update corrected rotation here
   latest_state_.pos = R_gravity_aligned_ * latest_state_.pos;
   latest_state_.rot = R_gravity_aligned_ * latest_state_.rot;

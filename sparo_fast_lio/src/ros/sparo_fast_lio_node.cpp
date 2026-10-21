@@ -85,7 +85,8 @@ SparoFastLioNode::SparoFastLioNode(const rclcpp::NodeOptions &options)
   auto g_vec = declare_parameter<std::vector<double>>("gravity_alignment.g_base", {0.0, 0.0, -1.0});
   ga.g_base << g_vec[0], g_vec[1], g_vec[2];
 
-  rclcpp::QoS lidar_qos(rclcpp::KeepLast(10));
+  // a backlog of scans is processed late rather than dropped (the worker thread catches up)
+  rclcpp::QoS lidar_qos(rclcpp::KeepLast(100));
   lidar_qos.reliable();
   lidar_qos.durability_volatile();
   sub_lidar_ = create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -179,8 +180,14 @@ SparoFastLioNode::SparoFastLioNode(const rclcpp::NodeOptions &options)
     return;
   }
 
-  main_loop_timer_ =
-      create_wall_timer(std::chrono::milliseconds(1), std::bind(&SparoFastLioNode::main, this));
+  worker_ = std::thread([this] {
+    while (!stop_ && rclcpp::ok()) {
+      if (auto result = lio_->step())
+        publishResult(*result);
+      else
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+    }
+  });
 
   if ((pre.point_filter_num != 1 && config_.point_filter_num > 1)) {
     RCLCPP_WARN(this->get_logger(),
@@ -559,6 +566,11 @@ PoseStruct SparoFastLioNode::transformPoseWrtBaseFrame(const State &state) {
   output.position_    = base_position;
   output.orientation_ = base_orientation;
   return output;
+}
+
+SparoFastLioNode::~SparoFastLioNode() {
+  stop_ = true;
+  if (worker_.joinable()) worker_.join();
 }
 
 void SparoFastLioNode::main() {
