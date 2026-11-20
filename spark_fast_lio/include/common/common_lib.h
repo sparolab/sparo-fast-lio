@@ -17,7 +17,14 @@
 #define USE_IKFOM
 
 #define PI_M (3.14159265358)
+// Gravity magnitude. Default: Earth (9.81 here, 9.809 in the S2 state manifold, as upstream).
+// Build with -DFASTLIO_GRAVITY_E4=<g * 10000> (e.g. 37200 for Mars) for other bodies; the IMU
+// accelerations are rescaled to this magnitude, so it must match the gravity the IMU measures.
+#ifdef FASTLIO_GRAVITY_E4
+#define G_m_s2 (FASTLIO_GRAVITY_E4 / 10000.0)
+#else
 #define G_m_s2 (9.81)    // Gravaty const in GuangDong/China
+#endif
 #define DIM_STATE (18)   // Dimension of states (Let Dim(SO(3)) = 3)
 #define DIM_PROC_N (12)  // Dimension of process noise (Let Dim(SO(3)) = 3)
 #define CUBE_LEN (6.0)
