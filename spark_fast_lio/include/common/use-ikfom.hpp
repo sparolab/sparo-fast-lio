@@ -5,7 +5,11 @@
 
 typedef MTK::vect<3, double> vect3;
 typedef MTK::SO3<double> SO3;
+#ifdef FASTLIO_GRAVITY_E4
+typedef MTK::S2<double, FASTLIO_GRAVITY_E4, 10000, 1> S2;
+#else
 typedef MTK::S2<double, 98090, 10000, 1> S2;
+#endif
 typedef MTK::vect<1, double> vect1;
 typedef MTK::vect<2, double> vect2;
 

@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 project(spark_fast_lio)
 
+# Gravity magnitude * 10000 for non-Earth IMUs (e.g. 37200 for Mars); empty = Earth, as upstream.
+set(FASTLIO_GRAVITY_E4 "" CACHE STRING "Gravity magnitude times 10000 (empty: 9.81 / 9.809)")
+if(FASTLIO_GRAVITY_E4)
+  add_compile_definitions(FASTLIO_GRAVITY_E4=${FASTLIO_GRAVITY_E4})
+endif()
+
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -pthread")
 set(CMAKE_CXX_FLAGS "-O3")
